@@ -1,8 +1,13 @@
 import numpy as np
-import pygame, sys, random, time
+import pygame, sys, random, time, copy
 from BLOCKS import *
 from pygame.locals import *
 
+def print_board() : 
+    print('=========================BOARD==========================')
+    for i in range(10) : 
+        print(BOARD[i])
+    print('========================================================')
 
 def State() : 
     class State :
@@ -12,23 +17,37 @@ def State() :
         def is_done(self) : 
             return check_end(self.board)
 
+        def test(self, action) : 
+            global CURR_BLOCK
+            global BOARD
+            temp_board = copy.deepcopy(BOARD)
+            game_main_loop(temp_board)
+            temp_block = copy.deepcopy(CURR_BLOCK)
+            temp_block.shape = CURR_BLOCK.shape_lst[action[0]]
+            temp_block.locX = action[1]
+            temp_block.hard_drop(temp_block.shape,BOARD)
+            if temp_block.check_block_collision(temp_block.shape, temp_block.locX, temp_block.locY+1, temp_board) : 
+                for x in range(4) : 
+                    for y in range(4) : 
+                        if temp_block.shape[x * 4 + y] : 
+                            temp_board[temp_block.locX + x][temp_block.locY + y] = temp_block.idx
+                block_generator()
+            return State()
+
         def next(self, action) : 
             global CURR_BLOCK
             global BOARD
-            CURR_BLOCK.shape = CURR_BLOCK.shape_lst[action[0]]
-            CURR_BLOCK.locX = action[1]
-            CURR_BLOCK.hard_drop(CURR_BLOCK.shape,BOARD)
-            print(CURR_BLOCK.shape)
-            if CURR_BLOCK.check_block_collision(CURR_BLOCK.shape, CURR_BLOCK.locX, CURR_BLOCK.locY+1, BOARD) : 
+            game_main_loop(BOARD)
+            print_board()
+            temp_block = copy.deepcopy(CURR_BLOCK)
+            temp_block.shape = CURR_BLOCK.shape_lst[action[0]]
+            temp_block.locX = action[1]
+            temp_block.hard_drop(temp_block.shape,BOARD)
+            if temp_block.check_block_collision(temp_block.shape, temp_block.locX, temp_block.locY+1, BOARD) : 
                 for x in range(4) : 
                     for y in range(4) : 
-                        if CURR_BLOCK.shape[y * 4 + x] : 
-                            print(y * 4 + x)
-                            print(x)
-                            print(y)
-                            print(CURR_BLOCK.locX)
-                            print('---------------------------------')
-                            BOARD[CURR_BLOCK.locX + x][CURR_BLOCK.locY + y] = CURR_BLOCK.idx
+                        if temp_block.shape[x * 4 + y] : 
+                            BOARD[temp_block.locX + x][temp_block.locY + y] = temp_block.idx
                 CURR_BLOCK = None
                 block_generator()
             return State()
@@ -68,7 +87,8 @@ def line_erase(board) :
             
 
 def random_generator() : 
-    idx_lst = [0,1,2,3,4,5,6]
+    idx_lst = [1,1,1,1,1,1,1]
+    #idx_lst = [0,1,2,3,4,5,6]
     #random.shuffle(idx_lst) 강화학습의 난이도를 낮추기 위해 블럭 순서 고정
     return idx_lst
 
@@ -136,19 +156,18 @@ def game_end() :
         for y in range(20) : 
             BOARD[x][y] = 0
     SCORE = 0
-    game_main_loop()
+    game_main_loop(BOARD)
 
 def game_start() :
     pygame.init()
     pygame.time.set_timer(pygame.USEREVENT, GAME_SPEED)
     time.sleep(2)
 
-def game_main_loop() : 
+def game_main_loop(R_BOARD) : 
     global counter
     global limit
     global CURR_BLOCK
     global HOLD_BLOCK
-    global BOARD
     global rotating
     MOVE_SPEED = 1
     #time.sleep(0.05)
@@ -203,11 +222,11 @@ def game_main_loop() :
     MOVE_SPEED = SPEED / MOVE_SPEED
     if counter  %  MOVE_SPEED == 0 : 
         if limit and not rotating: 
-            if CURR_BLOCK.check_block_collision(CURR_BLOCK.shape, CURR_BLOCK.locX, CURR_BLOCK.locY+1, BOARD) : 
+            if CURR_BLOCK.check_block_collision(CURR_BLOCK.shape, CURR_BLOCK.locX, CURR_BLOCK.locY+1, R_BOARD) : 
                 for x in range(4) : 
                     for y in range(4) : 
                         if CURR_BLOCK.shape[x * 4 + y] : 
-                            BOARD[CURR_BLOCK.locX + x][CURR_BLOCK.locY + y] = CURR_BLOCK.idx
+                            R_BOARD[CURR_BLOCK.locX + x][CURR_BLOCK.locY + y] = CURR_BLOCK.idx
                 CURR_BLOCK = None
                 block_generator()
             CURR_BLOCK.locY += 1
@@ -226,20 +245,20 @@ def game_main_loop() :
             counter = counter + 1 if counter < 100000000 else 0
         if event.type == KEYDOWN : 
             if event.key == K_z : 
-                CURR_BLOCK.rotate(0, BOARD, CURR_BLOCK.shape_lst)
+                CURR_BLOCK.rotate(0, R_BOARD, CURR_BLOCK.shape_lst)
                 rotating = 1
             if event.key == K_x : 
-                CURR_BLOCK.rotate(1, BOARD, CURR_BLOCK.shape_lst)
+                CURR_BLOCK.rotate(1, R_BOARD, CURR_BLOCK.shape_lst)
                 rotating = 1
             if event.key == K_c : 
                 MOVE_FLAG[0] = 1
             if event.key == K_SPACE : 
-                CURR_BLOCK.hard_drop(CURR_BLOCK.shape,BOARD)
-                if CURR_BLOCK.check_block_collision(CURR_BLOCK.shape, CURR_BLOCK.locX, CURR_BLOCK.locY+1, BOARD) : 
+                CURR_BLOCK.hard_drop(CURR_BLOCK.shape,R_BOARD)
+                if CURR_BLOCK.check_block_collision(CURR_BLOCK.shape, CURR_BLOCK.locX, CURR_BLOCK.locY+1, R_BOARD) : 
                     for x in range(4) : 
                         for y in range(4) : 
                             if CURR_BLOCK.shape[x * 4 + y] : 
-                                BOARD[CURR_BLOCK.locX + x][CURR_BLOCK.locY + y] = CURR_BLOCK.idx
+                                R_BOARD[CURR_BLOCK.locX + x][CURR_BLOCK.locY + y] = CURR_BLOCK.idx
                     CURR_BLOCK = None
                     block_generator()
             if event.key == K_DOWN : 
@@ -263,8 +282,8 @@ def game_main_loop() :
 
     block_move(MOVE_FLAG)
     '''
-    BOARD = line_erase(BOARD)
-    guideY = CURR_BLOCK.guide_block(CURR_BLOCK.shape, BOARD)
+    R_BOARD = line_erase(R_BOARD)
+    guideY = CURR_BLOCK.guide_block(CURR_BLOCK.shape, R_BOARD)
     
     for x in range(4) : 
         for y in range(4) : 
@@ -279,8 +298,8 @@ def game_main_loop() :
 
     for x in range(WIDTH) : 
         for y in range(HEIGHT) : 
-            if BOARD[x][y] : 
-                windowSurface.blit(block_colors_dic['block_'+BLOCKS_COLOR[int(BOARD[x][y]) - 1]], [START_X + BLOCK_SIZE * x , START_Y + BLOCK_SIZE * y])
+            if R_BOARD[x][y] : 
+                windowSurface.blit(block_colors_dic['block_'+BLOCKS_COLOR[int(R_BOARD[x][y]) - 1]], [START_X + BLOCK_SIZE * x , START_Y + BLOCK_SIZE * y])
     
     next_block_lst = [block_select(block_lst[0]), block_select(block_lst[1]), block_select(block_lst[2]), block_select(block_lst[3]), block_select(block_lst[4])]
     for i in range(len(next_block_lst)) :
@@ -306,7 +325,7 @@ def game_main_loop() :
             holding_block = pygame.transform.rotozoom(holding_block, 0, 0.8)
             windowSurface.blit(holding_block, [FLAW_SIZE + 23, FLAW_SIZE + 70])
    
-    if check_end(BOARD) : game_end()
+    if check_end(R_BOARD) : game_end()
 
     pygame.display.update()
 
@@ -343,5 +362,5 @@ BOARD = np.array([[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,5,5,2,2],
 
 game_start()
 while True : 
-    game_main_loop()
+    game_main_loop(BOARD)
 '''

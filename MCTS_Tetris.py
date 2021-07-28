@@ -5,7 +5,7 @@ from tensorflow.keras.models import load_model
 from pathlib import Path
 import numpy as np
 
-PV_EVALUATE_COUNT = 50 #추론 1회당 시뮬레이션 횟수
+PV_EVALUATE_COUNT = 100 #추론 1회당 시뮬레이션 횟수
 
 def predict(model, state) : 
     a, b, c = DN_INPUT_SHAPE
@@ -53,7 +53,7 @@ def pv_mcts_scores(model, state, temperature) :
 
                 self.child_nodes = []
                 for action, policy in zip(self.state.legal_action(), policies) : 
-                    self.child_nodes.append(Node(self.state.next(action), policy))
+                    self.child_nodes.append(Node(self.state.test(action), policy))
                 return value
             
             else :
@@ -73,9 +73,9 @@ def pv_mcts_scores(model, state, temperature) :
     
     root_node = Node(state, 0)
 
-    for _ in range(PV_EVALUATE_COUNT) : 
+    for i in range(PV_EVALUATE_COUNT) : 
         root_node.evaluate()
-
+        print("i : ", i)
     scores = nodes_to_scores(root_node.child_nodes)
     if temperature == 0 : 
         action = np.argmax(scores)

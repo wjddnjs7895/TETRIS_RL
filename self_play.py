@@ -1,15 +1,15 @@
-from Client_Tetris import State, game_start, game_main_loop, SCORE, CURR_BLOCK
+from Client_Tetris import State, game_start, game_main_loop, SCORE, CURR_BLOCK, BOARD
 from MCTS_Tetris import pv_mcts_scores
 from dual_network import DN_OUTPUT_SIZE
 from datetime import datetime
 from tensorflow.keras.models import load_model
 from tensorflow.keras import backend as K
+import tensorflow as tf
 from pathlib import Path
 import numpy as np
-import pickle
-import os
+import pickle, os
 
-SP_GAME_COUNT = 500
+SP_GAME_COUNT = 30
 SP_TEMPERATURE = 1.0
 
 def write_data(history) : 
@@ -24,10 +24,13 @@ def play(model) :
     history = []
 
     state = State()
-
+    game_main_loop(BOARD)
     while True : 
-        game_main_loop()
+        game_main_loop(BOARD)
         if state.is_done() : 
+            print('================================SCORE================================')
+            print("SCORE :", SCORE)
+            print('')
             break
 
         scores = pv_mcts_scores(model, state, SP_TEMPERATURE)
@@ -39,12 +42,8 @@ def play(model) :
 
         action = np.random.choice(len(state.legal_action()), p = scores)
 
-        print('=================================')
-        for x in range(4) : 
-            for y in range(4) : 
-                print(CURR_BLOCK[x][y])
-            print('')
-        print(action)
+        print('------------POLICIES------------')
+        print(policies)
 
         state = state.next(state.legal_action()[action])
 
