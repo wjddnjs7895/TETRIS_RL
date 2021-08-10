@@ -20,7 +20,9 @@ def train_network() :
 
     a, b, c = DN_INPUT_SHAPE
     xs = np.array(xs)
-    #xs = xs.reshape(len(xs), c, a, b).transpose(0, 2, 3, 1)
+    xs = xs.reshape(len(xs), c, a, b).transpose(0, 2, 3, 1)
+
+    y_policies = np.array(y_policies)
     y_values = np.array(y_values)
 
     model = load_model('./model/best.h5')
@@ -44,6 +46,6 @@ def train_network() :
     copy('./model/latest.h5', './model/best.h5')
     print('Change BestPlayer')
 
-    K.clear_Session()
+    K.clear_session()
     del model
 

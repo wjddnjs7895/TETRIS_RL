@@ -20,7 +20,7 @@ CCW_SRS = [
 class BLOCK : 
     def __init__(self) : 
         self.locX = 4      #LEFT_TOP
-        self.locY = 0
+        self.locY = -2
         self.type = 0 #블록 타입 첫번째 모양으로 고정
         #self.type = random.randrange(0,4)
 

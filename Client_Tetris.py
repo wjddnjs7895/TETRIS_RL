@@ -3,11 +3,23 @@ import pygame, sys, random, time, copy
 from BLOCKS import *
 from pygame.locals import *
 
-def print_board() : 
+def print_board(board) : 
     print('=========================BOARD==========================')
     for i in range(10) : 
-        print(BOARD[i])
+        print(board[i])
     print('========================================================')
+
+def get_score() : 
+    return SCORE[0]
+
+def get_tempscore() : 
+    return TEMP_SCORE[0]
+
+def reset() : 
+    SCORE[0] = 0
+
+def reset_temp() : 
+    TEMP_SCORE[0] = 0
 
 def State() : 
     class State :
@@ -19,26 +31,31 @@ def State() :
 
         def test(self, action) : 
             global CURR_BLOCK
-            global BOARD
-            temp_board = copy.deepcopy(BOARD)
-            game_main_loop(temp_board)
+            temp_board = copy.deepcopy(self.board)
             temp_block = copy.deepcopy(CURR_BLOCK)
             temp_block.shape = CURR_BLOCK.shape_lst[action[0]]
             temp_block.locX = action[1]
-            temp_block.hard_drop(temp_block.shape,BOARD)
+            temp_block.hard_drop(temp_block.shape,temp_board)
             if temp_block.check_block_collision(temp_block.shape, temp_block.locX, temp_block.locY+1, temp_board) : 
                 for x in range(4) : 
                     for y in range(4) : 
                         if temp_block.shape[x * 4 + y] : 
                             temp_board[temp_block.locX + x][temp_block.locY + y] = temp_block.idx
                 block_generator()
-            return State()
+            temp_board = line_erase(temp_board, TEMP_SCORE)
+            #print(temp_board)
+            #game_main_loop(temp_board, 1)
+            temp_state = State()
+            temp_state.board = temp_board
+            #print_board(temp_state.board)
+            
+            return temp_state
 
         def next(self, action) : 
             global CURR_BLOCK
             global BOARD
             game_main_loop(BOARD)
-            print_board()
+            #print_board()
             temp_block = copy.deepcopy(CURR_BLOCK)
             temp_block.shape = CURR_BLOCK.shape_lst[action[0]]
             temp_block.locX = action[1]
@@ -66,8 +83,7 @@ def block_select(shape) :
     elif shape == 5 : return MINO_L()
     else : return MINO_T()
 
-def line_erase(board) :
-    global SCORE
+def line_erase(board, score) :
     t_board = list(np.transpose(board))
     result_board = []
     erase_count = 0
@@ -82,13 +98,14 @@ def line_erase(board) :
         else : result_board.append(t_board[y])
     for _ in range(erase_count) : 
         result_board.insert(0,[0,0,0,0,0,0,0,0,0,0])
-    SCORE += erase_count * 10 * erase_count
+    score[0] += erase_count * 10 * erase_count
+    #print(SCORE)
     return np.transpose(np.array(result_board))
             
 
 def random_generator() : 
-    idx_lst = [1,1,1,1,1,1,1]
-    #idx_lst = [0,1,2,3,4,5,6]
+    #idx_lst = [1,1,1,1,1,1,1]
+    idx_lst = [0,1,2,3,4,5,6]
     #random.shuffle(idx_lst) 강화학습의 난이도를 낮추기 위해 블럭 순서 고정
     return idx_lst
 
@@ -155,7 +172,7 @@ def game_end() :
     for x in range(10) : 
         for y in range(20) : 
             BOARD[x][y] = 0
-    SCORE = 0
+    SCORE[0] = 0
     game_main_loop(BOARD)
 
 def game_start() :
@@ -163,14 +180,14 @@ def game_start() :
     pygame.time.set_timer(pygame.USEREVENT, GAME_SPEED)
     time.sleep(2)
 
-def game_main_loop(R_BOARD) : 
+def game_main_loop(R_BOARD, num = 1) : 
     global counter
     global limit
     global CURR_BLOCK
     global HOLD_BLOCK
     global rotating
+    global SCORE
     MOVE_SPEED = 1
-    #time.sleep(0.05)
     WINDOWWIDTH = 1400
     WINDOWHEIGHT = 1160
     BLOCK_SIZE = 36
@@ -218,6 +235,7 @@ def game_main_loop(R_BOARD) :
 
     block_generator()
 
+    '''
     SPEED = 4
     MOVE_SPEED = SPEED / MOVE_SPEED
     if counter  %  MOVE_SPEED == 0 : 
@@ -235,7 +253,6 @@ def game_main_loop(R_BOARD) :
     if counter & 2 == 0 : 
         rotating = 0
 
-    '''
     for event in pygame.event.get() : 
         if event.type == QUIT : 
             pygame.quit()
@@ -282,7 +299,7 @@ def game_main_loop(R_BOARD) :
 
     block_move(MOVE_FLAG)
     '''
-    R_BOARD = line_erase(R_BOARD)
+    R_BOARD = line_erase(R_BOARD, SCORE)
     guideY = CURR_BLOCK.guide_block(CURR_BLOCK.shape, R_BOARD)
     
     for x in range(4) : 
@@ -325,9 +342,9 @@ def game_main_loop(R_BOARD) :
             holding_block = pygame.transform.rotozoom(holding_block, 0, 0.8)
             windowSurface.blit(holding_block, [FLAW_SIZE + 23, FLAW_SIZE + 70])
    
-    if check_end(R_BOARD) : game_end()
+    #if check_end(R_BOARD) : game_end()
 
-    pygame.display.update()
+    if num : pygame.display.update()
 
 #                 0          1          2          3         4          5          6   
 BLOCKS_IDX = ['BLOCK_I', 'BLOCK_O', 'BLOCK_Z', 'BLOCK_S', 'BLOCK_J', 'BLOCK_L', 'BLOCK_T']
@@ -335,7 +352,8 @@ BLOCKS_COLOR = ['skyblue', 'yellow', 'red', 'green', 'blue', 'orange', 'purple']
 
 CURR_BLOCK = None
 HOLD_BLOCK = None
-SCORE = 0
+TEMP_SCORE = [0]
+SCORE = [0]
 block_lst = []
 WIDTH = 10
 HEIGHT = 20
